@@ -23,7 +23,6 @@ mongoose.connect(process.env.MONGO_URI, {
     });
 
 // Routes
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/events', require('./routes/events'));
 

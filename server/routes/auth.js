@@ -174,7 +174,7 @@ router.put('/profile', [auth, upload.single('profilePhoto')], async (req, res) =
         profileFields.profilePhoto = req.file.path;
     } else if (req.body.removePhoto === 'true') {
         // User requested to remove photo - set to default
-        profileFields.profilePhoto = '/uploads/default.svg';
+        profileFields.profilePhoto = 'https://ui-avatars.com/api/?name=User&background=random';
     } else if (req.body.profilePhoto) {
         // Allow updating via URL string if provided
         profileFields.profilePhoto = req.body.profilePhoto;

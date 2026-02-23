@@ -26,7 +26,7 @@ const UserSchema = new mongoose.Schema({
     },
     profilePhoto: {
         type: String,
-        default: '/uploads/default.svg'
+        default: 'https://ui-avatars.com/api/?name=User&background=random'
     },
     preferredSports: {
         type: [String],

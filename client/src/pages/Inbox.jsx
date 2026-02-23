@@ -60,10 +60,10 @@ const Inbox = () => {
                                     onClick={() => navigate(`/profile/${request._id}`)}
                                 >
                                     <img
-                                        src={request.profilePhoto || '/uploads/default.svg'}
+                                        src={request.profilePhoto || 'https://ui-avatars.com/api/?name=User&background=random'}
                                         alt={request.username}
                                         style={{ width: '50px', height: '50px', borderRadius: '50%', objectFit: 'cover' }}
-                                        onError={(e) => { e.target.onerror = null; e.target.src = '/uploads/default.svg'; }}
+                                        onError={(e) => { e.target.onerror = null; e.target.src = 'https://ui-avatars.com/api/?name=User&background=random'; }}
                                     />
                                     <div>
                                         <div style={{ fontWeight: 'bold', fontSize: '1.1rem' }}>{request.name}</div>

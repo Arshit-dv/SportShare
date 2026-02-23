@@ -54,7 +54,7 @@ const Profile = () => {
             setFormData({
                 description: profileUser.description || '',
                 preferredSports: profileUser.preferredSports ? profileUser.preferredSports.join(', ') : '',
-                profilePhoto: profileUser.profilePhoto || '/uploads/default.svg'
+                profilePhoto: profileUser.profilePhoto || 'https://ui-avatars.com/api/?name=User&background=random'
             });
         }
     }, [profileUser, isOwnProfile]);
@@ -215,10 +215,10 @@ const Profile = () => {
                             src={
                                 profileUser.profilePhoto && !profileUser.profilePhoto.includes('placeholder.com')
                                     ? profileUser.profilePhoto
-                                    : '/uploads/default.svg'
+                                    : 'https://ui-avatars.com/api/?name=User&background=random'
                             }
                             alt="Profile"
-                            onError={(e) => { e.target.onerror = null; e.target.src = '/uploads/default.svg'; }}
+                            onError={(e) => { e.target.onerror = null; e.target.src = 'https://ui-avatars.com/api/?name=User&background=random'; }}
                             style={{
                                 width: '100%',
                                 height: '100%',
@@ -437,7 +437,7 @@ const Profile = () => {
                                 <div className="input-group">
                                     <label>Profile Photo</label>
                                     <input type="file" name="profilePhoto" accept="image/*" onChange={onChange} style={{ color: 'white' }} />
-                                    {profilePhoto && profilePhoto !== '/uploads/default.svg' && !removePhoto && (
+                                    {profilePhoto && profilePhoto !== 'https://ui-avatars.com/api/?name=User&background=random' && !removePhoto && (
                                         <button
                                             type="button"
                                             onClick={() => { setRemovePhoto(true); setFile(null); }}
@@ -507,10 +507,10 @@ const Profile = () => {
                                     onMouseOut={(e) => friend._id && (e.currentTarget.style.background = '#222')}
                                 >
                                     <img
-                                        src={friend.profilePhoto || '/uploads/default.svg'}
+                                        src={friend.profilePhoto || 'https://ui-avatars.com/api/?name=User&background=random'}
                                         alt={friend.username}
                                         style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }}
-                                        onError={(e) => { e.target.onerror = null; e.target.src = '/uploads/default.svg'; }}
+                                        onError={(e) => { e.target.onerror = null; e.target.src = 'https://ui-avatars.com/api/?name=User&background=random'; }}
                                     />
                                     <div>
                                         <div style={{ fontWeight: 'bold' }}>{friend.name || 'Unknown User'}</div>
