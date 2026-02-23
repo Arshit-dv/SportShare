@@ -94,6 +94,7 @@ const Profile = () => {
             setRemovePhoto(false);
         } catch (err) {
             console.error('Profile update failed', err);
+            alert(err.response?.data?.msg || 'Profile update failed. Make sure your Cloudinary credentials are set correctly in the server .env file.');
         }
     };
 
