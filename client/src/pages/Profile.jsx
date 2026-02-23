@@ -2,7 +2,7 @@ import { useState, useContext, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import AuthContext from '../context/AuthContext';
 import EventContext from '../context/EventContext'; // Import EventContext
-import axios from 'axios';
+import api from '../utils/api';
 
 const Profile = () => {
     const { user: authUser, loadUser, logout } = useContext(AuthContext);
@@ -36,7 +36,7 @@ const Profile = () => {
                 }
             } else {
                 try {
-                    const res = await axios.get(`/api/auth/user/${id}`);
+                    const res = await api.get(`/api/auth/user/${id}`);
                     setProfileUser(res.data);
                 } catch (err) {
                     console.error('Error fetching profile', err);
@@ -83,7 +83,7 @@ const Profile = () => {
         }
 
         try {
-            await axios.put('/api/auth/profile', formDataToSend, {
+            await api.put('/api/auth/profile', formDataToSend, {
                 headers: {
                     'Content-Type': 'multipart/form-data'
                 }
@@ -99,8 +99,8 @@ const Profile = () => {
 
     const onSendRequest = async () => {
         try {
-            await axios.post(`/api/auth/friend-request/${id}`);
-            const res = await axios.get(`/api/auth/user/${id}`);
+            await api.post(`/api/auth/friend-request/${id}`);
+            const res = await api.get(`/api/auth/user/${id}`);
             setProfileUser(res.data);
             loadUser();
         } catch (err) {
@@ -111,8 +111,8 @@ const Profile = () => {
 
     const onAcceptRequest = async () => {
         try {
-            await axios.put(`/api/auth/friend-request/accept/${id}`);
-            const res = await axios.get(`/api/auth/user/${id}`);
+            await api.put(`/api/auth/friend-request/accept/${id}`);
+            const res = await api.get(`/api/auth/user/${id}`);
             setProfileUser(res.data);
             loadUser();
         } catch (err) {
@@ -123,8 +123,8 @@ const Profile = () => {
 
     const onDeclineRequest = async () => {
         try {
-            await axios.delete(`/api/auth/friend-request/decline/${id}`);
-            const res = await axios.get(`/api/auth/user/${id}`);
+            await api.delete(`/api/auth/friend-request/decline/${id}`);
+            const res = await api.get(`/api/auth/user/${id}`);
             setProfileUser(res.data);
             loadUser();
         } catch (err) {
@@ -136,8 +136,8 @@ const Profile = () => {
     const onUnfriend = async () => {
         if (!window.confirm('Are you sure you want to unfriend this user?')) return;
         try {
-            await axios.delete(`/api/auth/friend/${id}`);
-            const res = await axios.get(`/api/auth/user/${id}`);
+            await api.delete(`/api/auth/friend/${id}`);
+            const res = await api.get(`/api/auth/user/${id}`);
             setProfileUser(res.data);
             loadUser();
         } catch (err) {
@@ -149,7 +149,7 @@ const Profile = () => {
     const onDeleteAccount = async () => {
         if (!window.confirm('WARNING: THIS IS PERMANENT. Are you sure you want to DELETE your account? This will remove all your data, including events you hosted.')) return;
         try {
-            await axios.delete('/api/auth/account');
+            await api.delete('/api/auth/account');
             logout();
             navigate('/');
         } catch (err) {

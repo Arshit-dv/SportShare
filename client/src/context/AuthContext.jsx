@@ -1,5 +1,5 @@
 import { createContext, useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../utils/api';
 
 const AuthContext = createContext();
 
@@ -9,23 +9,16 @@ export const AuthProvider = ({ children }) => {
     const [loading, setLoading] = useState(true);
     const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-    // Setup Axios defaults
-    if (token) {
-        axios.defaults.headers.common['x-auth-token'] = token;
-    } else {
-        delete axios.defaults.headers.common['x-auth-token'];
-    }
+    // Headers are now handled by the api interceptor in src/utils/api.js
 
     const loadUser = async () => {
-        if (localStorage.getItem('token')) {
-            axios.defaults.headers.common['x-auth-token'] = localStorage.getItem('token');
-        } else {
+        if (!localStorage.getItem('token')) {
             setLoading(false);
             return;
         }
 
         try {
-            const res = await axios.get('/api/auth/user');
+            const res = await api.get('/api/auth/user');
             setUser(res.data);
             setIsAuthenticated(true);
         } catch (err) {
@@ -42,7 +35,7 @@ export const AuthProvider = ({ children }) => {
 
     const register = async (userData) => {
         try {
-            const res = await axios.post('/api/auth/register', userData);
+            const res = await api.post('/api/auth/register', userData);
             setToken(res.data.token);
             localStorage.setItem('token', res.data.token);
             setIsAuthenticated(true);
@@ -56,7 +49,7 @@ export const AuthProvider = ({ children }) => {
 
     const login = async (formData) => {
         try {
-            const res = await axios.post('/api/auth/login', formData);
+            const res = await api.post('/api/auth/login', formData);
             setToken(res.data.token);
             localStorage.setItem('token', res.data.token);
             setIsAuthenticated(true);
@@ -73,7 +66,6 @@ export const AuthProvider = ({ children }) => {
         setUser(null);
         setIsAuthenticated(false);
         localStorage.removeItem('token');
-        delete axios.defaults.headers.common['x-auth-token'];
     };
 
     return (

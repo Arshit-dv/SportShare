@@ -1,7 +1,7 @@
 import { useState, useContext, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AuthContext from '../context/AuthContext';
-import axios from 'axios';
+import api from '../utils/api';
 
 const Inbox = () => {
     const { user, loadUser } = useContext(AuthContext);
@@ -17,9 +17,9 @@ const Inbox = () => {
         setLoading(true);
         try {
             if (action === 'accept') {
-                await axios.put(`/api/auth/friend-request/accept/${id}`);
+                await api.put(`/api/auth/friend-request/accept/${id}`);
             } else {
-                await axios.delete(`/api/auth/friend-request/decline/${id}`);
+                await api.delete(`/api/auth/friend-request/decline/${id}`);
             }
             await loadUser(); // Refresh user data
         } catch (err) {

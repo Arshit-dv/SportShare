@@ -1,5 +1,5 @@
 import { createContext, useReducer, useContext } from 'react';
-import axios from 'axios';
+import api from '../utils/api';
 import AuthContext from './AuthContext';
 
 const EventContext = createContext();
@@ -55,7 +55,7 @@ export const EventProvider = ({ children }) => {
     // Get Events
     const getEvents = async () => {
         try {
-            const res = await axios.get('/api/events');
+            const res = await api.get('/api/events');
 
             dispatch({
                 type: 'GET_EVENTS',
@@ -68,17 +68,10 @@ export const EventProvider = ({ children }) => {
             });
         }
     };
-
     // Add Event
     const addEvent = async event => {
-        const config = {
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        };
-
         try {
-            const res = await axios.post('/api/events', event, config);
+            const res = await api.post('/api/events', event);
 
             dispatch({
                 type: 'ADD_EVENT',
@@ -96,14 +89,8 @@ export const EventProvider = ({ children }) => {
 
     // Update Event
     const updateEvent = async (id, updatedData) => {
-        const config = {
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        };
-
         try {
-            const res = await axios.put(`/api/events/${id}`, updatedData, config);
+            const res = await api.put(`/api/events/${id}`, updatedData);
 
             dispatch({
                 type: 'UPDATE_EVENT',
@@ -122,7 +109,7 @@ export const EventProvider = ({ children }) => {
     // Delete Event
     const deleteEvent = async id => {
         try {
-            await axios.delete(`/api/events/${id}`);
+            await api.delete(`/api/events/${id}`);
 
             dispatch({
                 type: 'DELETE_EVENT',
@@ -139,7 +126,7 @@ export const EventProvider = ({ children }) => {
     // Join/Leave Event
     const joinEvent = async id => {
         try {
-            const res = await axios.put(`/api/events/join/${id}`);
+            const res = await api.put(`/api/events/join/${id}`);
 
             // We need to update the specific event in state with new participants
             // But the API returns only participants array.
