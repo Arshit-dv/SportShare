@@ -26,7 +26,7 @@ const UserSchema = new mongoose.Schema({
     },
     profilePhoto: {
         type: String,
-        default: 'https://ui-avatars.com/api/?name=User&background=random'
+        default: 'https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y'
     },
     preferredSports: {
         type: [String],

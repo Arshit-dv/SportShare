@@ -213,12 +213,12 @@ const Profile = () => {
                     }}>
                         <img
                             src={
-                                profileUser.profilePhoto && !profileUser.profilePhoto.includes('placeholder.com')
+                                profileUser.profilePhoto && profileUser.profilePhoto.startsWith('http')
                                     ? profileUser.profilePhoto
-                                    : 'https://ui-avatars.com/api/?name=User&background=random'
+                                    : 'https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y'
                             }
                             alt="Profile"
-                            onError={(e) => { e.target.onerror = null; e.target.src = 'https://ui-avatars.com/api/?name=User&background=random'; }}
+                            onError={(e) => { e.target.onerror = null; e.target.src = 'https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y'; }}
                             style={{
                                 width: '100%',
                                 height: '100%',
