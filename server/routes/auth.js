@@ -170,13 +170,8 @@ router.put('/profile', [auth, upload.single('profilePhoto')], async (req, res) =
     }
 
     if (req.file) {
-        // Construct URL for the uploaded file
-        // Assuming server serves /uploads at root or we save relative path
-        // Currently User model stores full URL or string. 
-        // Let's store relative path or full URL depending on how frontend uses it.
-        // Frontend uses "http://localhost:5000/uploads/filename" or just "/uploads/filename" if proxy is set.
-        // Let's store "/uploads/" + filename for simplicity.
-        profileFields.profilePhoto = `/uploads/${req.file.filename}`;
+        // With Cloudinary, req.file.path contains the full URL of the uploaded image
+        profileFields.profilePhoto = req.file.path;
     } else if (req.body.removePhoto === 'true') {
         // User requested to remove photo - set to default
         profileFields.profilePhoto = '/uploads/default.svg';
