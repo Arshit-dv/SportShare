@@ -11,20 +11,24 @@ const sendEmail = async (options) => {
         host: 'smtp.gmail.com',
         port: 587,
         secure: false, // For Port 587, secure must be FALSE as it uses STARTTLS
+        // CRITICAL FOR RENDER: Force IPv4 at the DNS level
+        lookup: (hostname, options, callback) => {
+            require('dns').lookup(hostname, { family: 4 }, (err, address, family) => {
+                callback(err, address, family);
+            });
+        },
         auth: {
             user: process.env.EMAIL_USER,
             pass: process.env.EMAIL_PASS
         },
         tls: {
-            // Ensuring the connection is secure and allowing connections even if there are subtle IPv6/v4 mismatch issues
+            // Ensuring the connection is secure and using standard protocols
             rejectUnauthorized: true,
             minVersion: 'TLSv1.2'
         },
-        // IMPORTANT: Explictly force IPv4 connection
-        family: 4, 
-        connectionTimeout: 15000, // 15 seconds
-        greetingTimeout: 15000,
-        socketTimeout: 15000
+        connectionTimeout: 20000, // 20 seconds
+        greetingTimeout: 20000,
+        socketTimeout: 20000
     });
 
     const mailOptions = {
