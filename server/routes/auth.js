@@ -1,329 +1,95 @@
 const express = require('express');
 const router = express.Router();
-const nodemailer = require('nodemailer');
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
+const admin = require('../config/firebaseAdmin');
 const auth = require('../middleware/auth');
 const upload = require('../middleware/upload');
 const User = require('../models/User');
 const Event = require('../models/Event');
-const sendEmail = require('../utils/email');
 
 
 // @route   POST api/auth/register
-// @desc    Register user
-// @access  Public
+// @desc    Register or Sync user from Firebase
+// @access  Public (Expects x-auth-token in header)
 router.post('/register', async (req, res) => {
-    const { name, email, password, username, age, gender } = req.body;
+    const { name, username, age, gender } = req.body;
+    const token = req.header('x-auth-token');
 
-    // Email validation strictly required
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!email || !emailRegex.test(email)) {
-        return res.status(400).json({ msg: 'Please enter a valid email address' });
-    }
+    if (!token) return res.status(401).json({ msg: 'No token provided' });
 
     try {
-        const normalizedEmail = email.toLowerCase().trim();
-        let user = await User.findOne({ email: normalizedEmail });
+        // Verify the Firebase ID Token
+        const decodedToken = await admin.auth().verifyIdToken(token);
+        const { uid, email } = decodedToken;
+
+        let user = await User.findById(uid);
 
         if (user) {
-            if (user.isVerified) {
-                 return res.status(400).json({ msg: 'User already exists' });
-            }
-            // User exists but not verified, proceed to update and resend OTP
-        }
-
-        const otp = Math.floor(100000 + Math.random() * 900000).toString();
-        const otpExpires = new Date(Date.now() + 15 * 60 * 1000); // 15 mins
-
-        if (!user) {
+            // Update existing user metadata if needed
+            user.name = name || user.name;
+            user.username = (username || user.username || '').trim();
+            user.age = age || user.age;
+            user.gender = gender || user.gender;
+        } else {
+            // Create new user record with Firebase UID as _id
             user = new User({
+                _id: uid,
                 name,
-                email: normalizedEmail,
-                password,
-                username: username.trim(),
+                email: email.toLowerCase().trim(),
+                username: (username || '').trim(),
                 age,
-                gender,
-                isVerified: false,
-                otp,
-                otpExpires
+                gender
             });
-
-            const salt = await bcrypt.genSalt(10);
-            user.password = await bcrypt.hash(password, salt);
-        } else {
-            // Update unverified user details
-            user.name = name;
-            user.username = username.trim();
-            user.age = age;
-            user.gender = gender;
-            const salt = await bcrypt.genSalt(10);
-            user.password = await bcrypt.hash(password, salt);
-            user.otp = otp;
-            user.otpExpires = otpExpires;
         }
 
         await user.save();
-
-        const mailOptions = {
-            to: normalizedEmail,
-            subject: 'Verify your SportShare account',
-            text: `Your OTP for account verification is: ${otp}`
-        };
-
-        if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
-            try {
-                await sendEmail(mailOptions);
-                res.json({ msg: 'Verification OTP sent to your email', requireOtp: true, email: normalizedEmail });
-            } catch (err) {
-                console.error('Email sending failed:', err.message);
-                
-                // If email fails, we still want to log them in since verification is optional now
-                const payload = {
-                    user: {
-                        id: user.id
-                    }
-                };
-
-                const token = jwt.sign(
-                    payload,
-                    process.env.JWT_SECRET,
-                    { expiresIn: 360000 }
-                );
-
-                return res.json({ 
-                    success: true,
-                    token,
-                    msg: 'Account created! Verification email failed (Timeout), but you are now logged in. Verification is now optional.', 
-                    requireOtp: false, 
-                    email: normalizedEmail,
-                    error: err.message
-                });
-            }
-        } else {
-             console.log('--- EMAIL NOT SENT (Missing EMAIL_USER and EMAIL_PASS in .env) ---');
-             console.log(`To: ${normalizedEmail}`);
-             console.log(`OTP: ${otp}`);
-             res.json({ msg: 'Verification OTP sent to console (missing credentials)', requireOtp: true, email: normalizedEmail });
-        }
+        res.json(user);
     } catch (err) {
-        console.error(err.message);
-        res.status(500).send('Server error');
-    }
-});
-
-// @route   POST api/auth/verify-otp
-// @desc    Verify OTP and complete registration
-// @access  Public
-router.post('/verify-otp', async (req, res) => {
-    const { email, otp } = req.body;
-
-    if (!email || !otp) {
-        return res.status(400).json({ msg: 'Please provide email and OTP' });
-    }
-
-    try {
-        const user = await User.findOne({ email: email.toLowerCase().trim() });
-
-        if (!user) return res.status(400).json({ msg: 'User not found' });
-        if (user.isVerified) return res.status(400).json({ msg: 'User already verified' });
-
-        if (user.otp !== otp) {
-            return res.status(400).json({ msg: 'Invalid OTP' });
-        }
-
-        if (user.otpExpires < new Date()) {
-            return res.status(400).json({ msg: 'OTP has expired' });
-        }
-
-        user.isVerified = true;
-        user.otp = undefined;
-        user.otpExpires = undefined;
-        await user.save();
-
-        const payload = {
-            user: {
-                id: user.id
-            }
-        };
-
-        jwt.sign(
-            payload,
-            process.env.JWT_SECRET,
-            { expiresIn: 360000 },
-            (err, token) => {
-                if (err) throw err;
-                res.json({ token });
-            }
-        );
-    } catch (err) {
-        console.error(err.message);
-        res.status(500).send('Server error');
-    }
-});
-
-// @route   POST api/auth/resend-otp
-// @desc    Resend OTP to unverified user
-// @access  Public
-router.post('/resend-otp', async (req, res) => {
-    const { email } = req.body;
-    if (!email) return res.status(400).json({ msg: 'Email is required' });
-
-    try {
-        const user = await User.findOne({ email: email.toLowerCase().trim() });
-        if (!user) return res.status(400).json({ msg: 'User not found' });
-        if (user.isVerified) return res.status(400).json({ msg: 'User already verified' });
-
-        const otp = Math.floor(100000 + Math.random() * 900000).toString();
-        const otpExpires = new Date(Date.now() + 15 * 60 * 1000); // 15 mins
-
-        user.otp = otp;
-        user.otpExpires = otpExpires;
-        await user.save();
-
-        const mailOptions = {
-            to: user.email,
-            subject: 'Verify your SportShare account',
-            text: `Your new OTP for account verification is: ${otp}`
-        };
-
-        if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
-            try {
-                await sendEmail(mailOptions);
-                res.json({ msg: 'A new OTP has been sent to your email' });
-            } catch (err) {
-                console.error('Email resend failed:', err.message);
-                return res.status(500).json({ msg: 'Failed to resend email. Check Nodemailer config: ' + err.message });
-            }
-        } else {
-             console.log('--- EMAIL NOT SENT (Missing EMAIL_USER and EMAIL_PASS in .env) ---');
-             console.log(`To: ${user.email}`);
-             console.log(`OTP: ${otp}`);
-             res.json({ msg: 'A new OTP has been generated (check console)' });
-        }
-    } catch (err) {
-        console.error(err.message);
+        console.error('Registration Error:', err.message);
         res.status(500).send('Server error');
     }
 });
 
 // @route   POST api/auth/login
-// @desc    Authenticate user & get token
-// @access  Public
+// @desc    Sync or Login user from Firebase
+// @access  Public (Expects x-auth-token in header)
 router.post('/login', async (req, res) => {
-    const { email, password } = req.body;
-
-    // Email validation strictly required
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!email || !emailRegex.test(email)) {
-        return res.status(400).json({ msg: 'Please enter a valid email address' });
-    }
-
-    // Note: Frontend sends 'username' field but it matches 'email' in our simplified schema for now, 
-    // or we can treat username as email. Let's stick to email for robustness or adjust.
-    // For this request: "name entered" usually implies name, but login is usually email/username.
-    // Let's assume login is by Email for now based on Signup form having Email.
-    // Wait, previous UI had Username field in Login. Let's support Email for login.
-
-    // ADJUSTMENT: Login UI has "Username" label currently. 
-    // To match Signup (Name, Email, Password), we should probably login with Email.
-    // I will update the destructured variable to 'email' (mapped from username input) or expect 'email'.
-    // Let's check what Frontend sends. Login.jsx sends { username, password }.
-    // I will treat 'username' input as 'email' for simplicity or add username field to User model.
-    // PROPOSAL: Let's use Email for login as it's in Signup. I'll handle 'username' from request as 'title', 
-    // but check against email in DB.
-
+    const token = req.header('x-auth-token');
+    if (!token) return res.status(401).json({ msg: 'No token provided' });
 
     try {
-        // Try to find user by email or username
-        let user = await User.findOne({
-            $or: [
-                { email: email.toLowerCase().trim() },
-                { username: email.trim() }
-            ]
-        });
+        const decodedToken = await admin.auth().verifyIdToken(token);
+        const { uid, email, name } = decodedToken;
 
-        if (!user) {
-            return res.status(400).json({ msg: 'Invalid Credentials' });
-        }
-
-        // Verification check removed as per user request (skip verification for login)
-        // if (!user.isVerified) {
-        //     return res.status(400).json({ msg: 'Please verify your email first', requireOtp: true, email: user.email });
-        // }
-
-
-        const isMatch = await bcrypt.compare(password, user.password);
-
-        if (!isMatch) {
-            return res.status(400).json({ msg: 'Invalid Credentials' });
-        }
-
-        const payload = {
-            user: {
-                id: user.id
-            }
+        // ATOMIC SYNC: Update or Create user in one go to avoid index crashes
+        const profileData = {
+            name: name || (email ? email.split('@')[0] : 'New User'),
+            email: email ? email.toLowerCase().trim() : '',
+            username: email ? email.split('@')[0] + Math.floor(Math.random() * 1000) : 'user_' + uid.substring(0, 5),
+            age: 20, 
+            gender: 'Other'
         };
 
-        jwt.sign(
-            payload,
-            process.env.JWT_SECRET,
-            { expiresIn: 360000 },
-            (err, token) => {
-                if (err) throw err;
-                res.json({ token });
-            }
+        const user = await User.findOneAndUpdate(
+            { _id: uid },
+            { $set: profileData },
+            { upsert: true, new: true, setDefaultsOnInsert: true }
         );
+
+        res.json(user);
     } catch (err) {
-        console.error(err.message);
+        console.error('Login Error:', err.message);
+        // If it still fails, it's because another user has that email. We MUST delete that ghost.
+        if (err.message.includes('E11000')) {
+             const { email } = await admin.auth().verifyIdToken(token);
+             await User.deleteOne({ email: email.toLowerCase().trim() });
+             return res.status(409).json({ msg: 'Database sync error. Please try logging in one more time.' });
+        }
         res.status(500).send('Server error');
     }
 });
 
-// @route   POST api/auth/forgot-password
-// @desc    Generate a new password and send to email
-// @access  Public
-router.post('/forgot-password', async (req, res) => {
-    const { email } = req.body;
-    if (!email) return res.status(400).json({ msg: 'Email is required' });
-
-    try {
-        const user = await User.findOne({ email: email.toLowerCase().trim() });
-        if (!user) return res.status(400).json({ msg: 'User not found' });
-
-        // Generate a random 8-character password
-        const newPassword = Math.random().toString(36).slice(-8);
-
-        // Hash and save the new password
-        const salt = await bcrypt.genSalt(10);
-        user.password = await bcrypt.hash(newPassword, salt);
-        await user.save();
-
-        const mailOptions = {
-            to: user.email,
-            subject: 'SportShare - New Password Generated',
-            text: `You requested a password reset. Your new temporary password is: ${newPassword}\nPlease log in and change your password as soon as possible.`
-        };
-
-        if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
-            try {
-                await sendEmail(mailOptions);
-                res.json({ msg: 'A new password has been sent to your email' });
-            } catch (err) {
-                console.error('Email send failed:', err.message);
-                return res.status(500).json({ msg: 'Failed to send reset email. Check Nodemailer config: ' + err.message });
-            }
-        } else {
-             console.log('--- EMAIL NOT SENT (Missing EMAIL_USER and EMAIL_PASS in .env) ---');
-             console.log(`To: ${user.email}`);
-             console.log(`New Password: ${newPassword}`);
-             res.json({ msg: 'A new password has been generated (check console)' });
-        }
-    } catch (err) {
-        console.error(err.message);
-        res.status(500).send('Server Error');
-    }
-});
+// NOTE: Forgot password and internal password changes are now handled directly by Firebase on the frontend.
+// These routes are now redundant but kept as skeletons if you need server-side logging.
 
 // @route   GET api/auth/user
 // @desc    Get logged in user
@@ -405,39 +171,7 @@ router.put('/profile', [auth, upload.single('profilePhoto')], async (req, res) =
     }
 });
 
-// @route   PUT api/auth/change-password
-// @desc    Change user password
-// @access  Private
-router.put('/change-password', auth, async (req, res) => {
-    const { currentPassword, newPassword } = req.body;
-
-    if (!currentPassword || !newPassword) {
-        return res.status(400).json({ msg: 'Please provide both current and new passwords' });
-    }
-
-    if (newPassword.length < 6) {
-        return res.status(400).json({ msg: 'New password must be at least 6 characters' });
-    }
-
-    try {
-        const user = await User.findById(req.user.id);
-        if (!user) return res.status(404).json({ msg: 'User not found' });
-
-        const isMatch = await bcrypt.compare(currentPassword, user.password);
-        if (!isMatch) {
-            return res.status(400).json({ msg: 'Incorrect current password' });
-        }
-
-        const salt = await bcrypt.genSalt(10);
-        user.password = await bcrypt.hash(newPassword, salt);
-        await user.save();
-
-        res.json({ msg: 'Password successfully updated' });
-    } catch (err) {
-        console.error(err.message);
-        res.status(500).send('Server Error');
-    }
-});
+// @route   PUT api/auth/change-password is now handled by Firebase frontend.
 
 // Friend Request Routes
 

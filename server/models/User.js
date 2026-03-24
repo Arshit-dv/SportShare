@@ -1,6 +1,10 @@
 const mongoose = require('mongoose');
 
 const UserSchema = new mongoose.Schema({
+    _id: {
+        type: String, // We use Firebase UID as the _id
+        required: true
+    },
     name: {
         type: String,
         required: true
@@ -13,10 +17,6 @@ const UserSchema = new mongoose.Schema({
     username: {
         type: String,
         unique: true
-    },
-    password: {
-        type: String,
-        required: true
     },
     age: {
         type: Number
@@ -37,34 +37,24 @@ const UserSchema = new mongoose.Schema({
         default: ''
     },
     friends: [{
-        type: mongoose.Schema.Types.ObjectId,
+        type: String,
         ref: 'user'
     }],
     friendRequests: [{
-        type: mongoose.Schema.Types.ObjectId,
+        type: String,
         ref: 'user'
     }],
     blockedUsers: [{
-        type: mongoose.Schema.Types.ObjectId,
+        type: String,
         ref: 'user'
     }],
     mutedUsers: [{
-        type: mongoose.Schema.Types.ObjectId,
+        type: String,
         ref: 'user'
     }],
     date: {
         type: Date,
         default: Date.now
-    },
-    isVerified: {
-        type: Boolean,
-        default: false
-    },
-    otp: {
-        type: String
-    },
-    otpExpires: {
-        type: Date
     }
 });
 

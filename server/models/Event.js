@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 
 const EventSchema = new mongoose.Schema({
     user: {
-        type: mongoose.Schema.Types.ObjectId,
+        type: String, // Firebase UID
         ref: 'user'
     },
     title: {
@@ -32,7 +32,7 @@ const EventSchema = new mongoose.Schema({
     participants: [
         {
             user: {
-                type: mongoose.Schema.Types.ObjectId,
+                type: String,
                 ref: 'user'
             }
         }
@@ -48,7 +48,7 @@ const EventSchema = new mongoose.Schema({
                 required: true
             },
             uploadedBy: {
-                type: mongoose.Schema.Types.ObjectId,
+                type: String,
                 ref: 'user'
             },
             description: {

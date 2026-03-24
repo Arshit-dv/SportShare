@@ -56,6 +56,8 @@ router.get('/conversations', auth, async (req, res) => {
         });
 
         const myUser = await User.findById(req.user.id);
+        if (!myUser) return res.json([]); // Safety check
+
         const mutedSet = new Set(myUser.mutedUsers ? myUser.mutedUsers.map(id => id.toString()) : []);
         const blockedSet = new Set(myUser.blockedUsers ? myUser.blockedUsers.map(id => id.toString()) : []);
 
@@ -153,6 +155,8 @@ router.get('/search/users', auth, async (req, res) => {
 router.get('/unread', auth, async (req, res) => {
     try {
         const myUser = await User.findById(req.user.id);
+        if (!myUser) return res.json({ count: 0 }); // Safety check
+
         const count = await Message.countDocuments({
             $or: [{ receiver: req.user.id }, { recipient: req.user.id }],
             sender: { $nin: myUser.mutedUsers || [] }, // exclude muted senders

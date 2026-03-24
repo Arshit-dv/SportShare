@@ -13,6 +13,10 @@ const Dashboard = () => {
     const { user, logout } = authContext;
     const { events, getEvents, loading } = eventContext;
 
+    if (!user) {
+        return <div className="dashboard-container" style={{ textAlign: 'center', marginTop: '50px' }}><h2>Loading profile...</h2></div>;
+    }
+
     useEffect(() => {
         getEvents();
         // eslint-disable-next-line

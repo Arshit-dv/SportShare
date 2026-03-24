@@ -2,18 +2,18 @@ const mongoose = require('mongoose');
 
 const MessageSchema = new mongoose.Schema({
     sender: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'User',
+        type: String, // Firebase UID
+        ref: 'user',
         required: true
     },
     receiver: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'User',
+        type: String,
+        ref: 'user',
         required: false
     },
     recipient: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'User',
+        type: String,
+        ref: 'user',
         required: false
     },
     text: {
@@ -29,8 +29,8 @@ const MessageSchema = new mongoose.Schema({
         default: Date.now
     },
     deletedBy: [{
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'User'
+        type: String,
+        ref: 'user'
     }]
 }, { timestamps: true });
 

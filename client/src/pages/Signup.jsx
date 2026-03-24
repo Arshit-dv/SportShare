@@ -4,7 +4,7 @@ import AuthContext from '../context/AuthContext';
 
 const Signup = () => {
     const authContext = useContext(AuthContext);
-    const { register, verifyOtp, resendOtp } = authContext;
+    const { register } = authContext;
     const navigate = useNavigate();
 
     const [formData, setFormData] = useState({
@@ -16,10 +16,6 @@ const Signup = () => {
         password: '',
         confirmPassword: ''
     });
-
-    const [showOtp, setShowOtp] = useState(false);
-    const [otp, setOtp] = useState('');
-    const [registeredEmail, setRegisteredEmail] = useState('');
 
     const { name, email, username, age, gender, password, confirmPassword } = formData;
     const [error, setError] = useState('');
@@ -51,21 +47,6 @@ const Signup = () => {
         }
 
         const res = await register({ name, email, username, age, gender, password });
-        if (res.success && res.requireOtp) {
-            setShowOtp(true);
-            setRegisteredEmail(res.email);
-            setError('');
-            setSuccessMsg(res.msg || 'OTP sent to your email.');
-        } else if (res.success) {
-            navigate('/dashboard');
-        } else {
-            setError(res.msg);
-        }
-    };
-
-    const onVerifyOtp = async e => {
-        e.preventDefault();
-        const res = await verifyOtp(registeredEmail, otp);
         if (res.success) {
             navigate('/dashboard');
         } else {
@@ -73,39 +54,6 @@ const Signup = () => {
         }
     };
 
-    const handleResendOtp = async () => {
-        setError('');
-        setSuccessMsg('');
-        const res = await resendOtp(registeredEmail);
-        if (res.success) {
-            setSuccessMsg(res.msg);
-        } else {
-            setError(res.msg);
-        }
-    };
-
-    if (showOtp) {
-        return (
-            <div className="container" style={{ maxWidth: '400px', marginTop: '30px', paddingBottom: '30px' }}>
-                <h2 style={{ textAlign: 'center', color: 'var(--accent-blue)', marginBottom: '20px' }}>Verify Email</h2>
-                <p style={{ textAlign: 'center', marginBottom: '15px' }}>We sent an OTP to {registeredEmail}</p>
-                {successMsg && <div style={{ background: 'rgba(56, 204, 119, 0.2)', color: 'var(--success)', padding: '10px', borderRadius: '5px', marginBottom: '15px', textAlign: 'center' }}>{successMsg}</div>}
-                {error && <div style={{ background: 'rgba(255,0,85,0.2)', color: 'var(--danger)', padding: '10px', borderRadius: '5px', marginBottom: '15px', textAlign: 'center' }}>{error}</div>}
-                <form onSubmit={onVerifyOtp} className="card">
-                     <div className="input-group">
-                         <label>Enter 6-digit OTP</label>
-                         <input type="text" value={otp} onChange={e => setOtp(e.target.value)} required />
-                     </div>
-                     <button type="submit" className="btn-primary" style={{ width: '100%', marginTop: '10px' }}>Verify & Log In</button>
-                </form>
-                <div style={{ textAlign: 'center', marginTop: '15px' }}>
-                    <button type="button" onClick={handleResendOtp} style={{ background: 'none', border: 'none', color: 'var(--accent-blue)', textDecoration: 'underline', cursor: 'pointer' }}>
-                        Didn't receive code? Resend OTP
-                    </button>
-                </div>
-            </div>
-        );
-    }
 
     return (
         <div className="container" style={{ maxWidth: '400px', marginTop: '30px', paddingBottom: '30px' }}>
