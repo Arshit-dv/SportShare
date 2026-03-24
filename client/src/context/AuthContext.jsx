@@ -97,8 +97,14 @@ export const AuthProvider = ({ children }) => {
             return { success: true };
         } catch (err) {
             console.error('Registration error:', err.message);
-            let msg = 'Registration failed';
-            if (err.code === 'auth/email-already-in-use') msg = 'Email already in use';
+            let msg = 'Registration failed. Please try again.';
+            if (err.code === 'auth/weak-password') {
+                msg = 'Password is too weak. Must be at least 6 characters.';
+            } else if (err.code === 'auth/email-already-in-use') {
+                msg = 'This email is already registered.';
+            } else if (err.code === 'auth/invalid-email') {
+                msg = 'Invalid email address format.';
+            }
             return { success: false, msg };
         }
     };

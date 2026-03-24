@@ -186,10 +186,16 @@ const Inbox = () => {
                     <img
                         src={activeChat.profilePhoto || `https://ui-avatars.com/api/?name=${encodeURIComponent(activeChat.name || 'User')}&background=random`}
                         alt={activeChat.username}
-                        style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }}
+                        onClick={() => navigate(`/profile/${activeChat._id}`)}
+                        style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover', cursor: 'pointer' }}
                         onError={(e) => { e.target.onerror = null; e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(activeChat.name || 'User')}&background=random`; }}
                     />
-                    <h2 style={{ margin: 0 }}>{activeChat.name}</h2>
+                    <h2 
+                        onClick={() => navigate(`/profile/${activeChat._id}`)}
+                        style={{ margin: 0, cursor: 'pointer' }}
+                    >
+                        {activeChat.name}
+                    </h2>
                 </div>
 
                 <div style={{ flex: 1, background: '#1a1b26', borderRadius: '10px', border: '1px solid #24283b', padding: '20px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '15px' }}>
@@ -319,20 +325,31 @@ const Inbox = () => {
                             {searchResults.map(u => (
                                 <div
                                     key={u._id}
+                                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 15px', cursor: 'pointer', borderBottom: '1px solid #24283b' }}
                                     onClick={() => {
                                         setActiveChat(u);
                                         setSearchQuery('');
                                         setSearchResults([]);
                                     }}
-                                    style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 15px', cursor: 'pointer', borderBottom: '1px solid #24283b' }}
                                 >
-                                    <img 
-                                        src={u.profilePhoto || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.name || 'User')}&background=random`} 
-                                        alt={u.name} 
-                                        style={{ width: '30px', height: '30px', borderRadius: '50%', objectFit: 'cover' }} 
-                                        onError={(e) => { e.target.onerror = null; e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(u.name || 'User')}&background=random`; }}
-                                    />
-                                    <span>{u.name} (@{u.username})</span>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                        <img 
+                                            src={u.profilePhoto || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.name || 'User')}&background=random`} 
+                                            alt={u.name} 
+                                            style={{ width: '30px', height: '30px', borderRadius: '50%', objectFit: 'cover' }} 
+                                            onError={(e) => { e.target.onerror = null; e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(u.name || 'User')}&background=random`; }}
+                                        />
+                                        <span>{u.name} (@{u.username})</span>
+                                    </div>
+                                    <button 
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            navigate(`/profile/${u._id}`);
+                                        }}
+                                        style={{ background: 'transparent', border: '1px solid #7aa2f7', color: '#7aa2f7', padding: '3px 10px', borderRadius: '5px', fontSize: '0.8rem' }}
+                                    >
+                                        View Profile
+                                    </button>
                                 </div>
                             ))}
                         </div>
