@@ -7,6 +7,7 @@ const auth = require('../middleware/auth');
 const upload = require('../middleware/upload');
 const User = require('../models/User');
 const Event = require('../models/Event');
+const sendEmail = require('../utils/email');
 
 
 // @route   POST api/auth/register
@@ -64,21 +65,7 @@ router.post('/register', async (req, res) => {
 
         await user.save();
 
-        const transporter = nodemailer.createTransport({
-            host: 'smtp.gmail.com',
-            port: 465,
-            secure: true,
-            auth: {
-                user: process.env.EMAIL_USER,
-                pass: process.env.EMAIL_PASS
-            },
-            connectionTimeout: 10000, // 10 seconds
-            greetingTimeout: 10000,
-            socketTimeout: 10000
-        });
-
         const mailOptions = {
-            from: process.env.EMAIL_USER || 'noreply@sportshare.com',
             to: normalizedEmail,
             subject: 'Verify your SportShare account',
             text: `Your OTP for account verification is: ${otp}`
@@ -86,7 +73,7 @@ router.post('/register', async (req, res) => {
 
         if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
             try {
-                await transporter.sendMail(mailOptions);
+                await sendEmail(mailOptions);
                 res.json({ msg: 'Verification OTP sent to your email', requireOtp: true, email: normalizedEmail });
             } catch (err) {
                 console.error('Email sending failed:', err.message);
@@ -194,21 +181,7 @@ router.post('/resend-otp', async (req, res) => {
         user.otpExpires = otpExpires;
         await user.save();
 
-        const transporter = nodemailer.createTransport({
-            host: 'smtp.gmail.com',
-            port: 465,
-            secure: true,
-            auth: {
-                user: process.env.EMAIL_USER,
-                pass: process.env.EMAIL_PASS
-            },
-            connectionTimeout: 10000,
-            greetingTimeout: 10000,
-            socketTimeout: 10000
-        });
-
         const mailOptions = {
-            from: process.env.EMAIL_USER || 'noreply@sportshare.com',
             to: user.email,
             subject: 'Verify your SportShare account',
             text: `Your new OTP for account verification is: ${otp}`
@@ -216,7 +189,7 @@ router.post('/resend-otp', async (req, res) => {
 
         if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
             try {
-                await transporter.sendMail(mailOptions);
+                await sendEmail(mailOptions);
                 res.json({ msg: 'A new OTP has been sent to your email' });
             } catch (err) {
                 console.error('Email resend failed:', err.message);
@@ -326,21 +299,7 @@ router.post('/forgot-password', async (req, res) => {
         user.password = await bcrypt.hash(newPassword, salt);
         await user.save();
 
-        const transporter = nodemailer.createTransport({
-            host: 'smtp.gmail.com',
-            port: 465,
-            secure: true,
-            auth: {
-                user: process.env.EMAIL_USER,
-                pass: process.env.EMAIL_PASS
-            },
-            connectionTimeout: 10000,
-            greetingTimeout: 10000,
-            socketTimeout: 10000
-        });
-
         const mailOptions = {
-            from: process.env.EMAIL_USER || 'noreply@sportshare.com',
             to: user.email,
             subject: 'SportShare - New Password Generated',
             text: `You requested a password reset. Your new temporary password is: ${newPassword}\nPlease log in and change your password as soon as possible.`
@@ -348,7 +307,7 @@ router.post('/forgot-password', async (req, res) => {
 
         if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
             try {
-                await transporter.sendMail(mailOptions);
+                await sendEmail(mailOptions);
                 res.json({ msg: 'A new password has been sent to your email' });
             } catch (err) {
                 console.error('Email send failed:', err.message);
