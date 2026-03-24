@@ -9,8 +9,9 @@ const sendEmail = async (options) => {
     // 2. Explicitly force IPv4 to avoid IPv6 issues (ENETUNREACH)
     const transporter = nodemailer.createTransport({
         host: 'smtp.gmail.com',
-        port: 587,
-        secure: false, // For Port 587, secure must be FALSE as it uses STARTTLS
+        port: 465,
+        secure: true, // Port 465 uses Implicit TLS (secure: true)
+        pool: true,   // Use connection pooling for better performance on slow networks
         // CRITICAL FOR RENDER: Force IPv4 at the DNS level
         lookup: (hostname, options, callback) => {
             require('dns').lookup(hostname, { family: 4 }, (err, address, family) => {
@@ -26,9 +27,10 @@ const sendEmail = async (options) => {
             rejectUnauthorized: true,
             minVersion: 'TLSv1.2'
         },
-        connectionTimeout: 20000, // 20 seconds
-        greetingTimeout: 20000,
-        socketTimeout: 20000
+        // Very generous timeouts for Render's network stability
+        connectionTimeout: 60000, // 60 seconds
+        greetingTimeout: 60000,
+        socketTimeout: 60000
     });
 
     const mailOptions = {
