@@ -8,29 +8,26 @@ const sendEmail = async (options) => {
     // 1. Create a transporter using Port 587 (more reliable on cloud hosts than 465)
     // 2. Explicitly force IPv4 to avoid IPv6 issues (ENETUNREACH)
     const transporter = nodemailer.createTransport({
-        host: 'smtp.gmail.com',
+        // 🚨 "THE HACK": Using the literal IPv4 Address for smtp.gmail.com
+        // This makes it PHYSICALLY IMPOSSIBLE to hit the ENETUNREACH IPv6 error.
+        host: '142.251.2.108', 
         port: 465,
-        secure: true, // Port 465 uses Implicit TLS (secure: true)
-        pool: true,   // Use connection pooling for better performance on slow networks
-        // CRITICAL FOR RENDER: Force IPv4 at the DNS level
-        lookup: (hostname, options, callback) => {
-            require('dns').lookup(hostname, { family: 4 }, (err, address, family) => {
-                callback(err, address, family);
-            });
-        },
+        secure: true, // Port 465 uses Implicit TLS
+        pool: true,
         auth: {
             user: process.env.EMAIL_USER,
             pass: process.env.EMAIL_PASS
         },
         tls: {
-            // Ensuring the connection is secure and using standard protocols
+            // When connecting via IP, we must manually tell Node to accept the gmail.com certificate
+            servername: 'smtp.gmail.com', 
             rejectUnauthorized: true,
             minVersion: 'TLSv1.2'
         },
-        // Very generous timeouts for Render's network stability
-        connectionTimeout: 60000, // 60 seconds
-        greetingTimeout: 60000,
-        socketTimeout: 60000
+        // Faster timeouts for a better user experience
+        connectionTimeout: 10000, // 10 seconds
+        greetingTimeout: 10000,
+        socketTimeout: 10000
     });
 
     const mailOptions = {
