@@ -58,22 +58,27 @@ router.post('/login', async (req, res) => {
 
     try {
         const decodedToken = await admin.auth().verifyIdToken(token);
-        const { uid, email, name } = decodedToken;
-
-        // ATOMIC SYNC: Update or Create user in one go to avoid index crashes
-        const profileData = {
-            name: name || (email ? email.split('@')[0] : 'New User'),
-            email: email ? email.toLowerCase().trim() : '',
-            username: email ? email.split('@')[0] + Math.floor(Math.random() * 1000) : 'user_' + uid.substring(0, 5),
-            age: 20, 
-            gender: 'Other'
-        };
-
-        const user = await User.findOneAndUpdate(
-            { _id: uid },
-            { $set: profileData },
-            { upsert: true, new: true, setDefaultsOnInsert: true }
-        );
+        const { uid, email, name } = decodedToken; // Destructure name here for potential use in $setOnInsert
+        let user = await User.findById(uid);
+        if (user) {
+            console.log(`👤 Found existing user in MongoDB: ${user.username}`);
+        } else {
+            console.log(`📡 User NOT found by ID: ${uid}. Creating new record for ${email}...`);
+            // ATOMIC SYNC: Only set defaults if INSERTING (new user).
+            user = await User.findOneAndUpdate(
+                { _id: uid },
+                { 
+                    $set: { email: email ? email.toLowerCase().trim() : '' },
+                    $setOnInsert: {
+                        name: name || (email ? email.split('@')[0] : 'New User'),
+                        username: email ? email.split('@')[0] + Math.floor(Math.random() * 1000) : 'user_' + uid.substring(0, 5),
+                        age: 20, 
+                        gender: 'Other'
+                    }
+                },
+                { upsert: true, new: true, setDefaultsOnInsert: true }
+            );
+        }
 
         res.json(user);
     } catch (err) {
