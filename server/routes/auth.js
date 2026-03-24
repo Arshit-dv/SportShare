@@ -64,12 +64,17 @@ router.post('/register', async (req, res) => {
 
         await user.save();
 
-        let transporter = nodemailer.createTransport({
-            service: 'gmail',
+        const transporter = nodemailer.createTransport({
+            host: 'smtp.gmail.com',
+            port: 465,
+            secure: true,
             auth: {
                 user: process.env.EMAIL_USER,
                 pass: process.env.EMAIL_PASS
-            }
+            },
+            connectionTimeout: 10000, // 10 seconds
+            greetingTimeout: 10000,
+            socketTimeout: 10000
         });
 
         const mailOptions = {
@@ -85,8 +90,28 @@ router.post('/register', async (req, res) => {
                 res.json({ msg: 'Verification OTP sent to your email', requireOtp: true, email: normalizedEmail });
             } catch (err) {
                 console.error('Email sending failed:', err.message);
-                // Return exact error to help user debug App Password / Auth issues
-                return res.status(500).json({ msg: 'Failed to send email. Check Nodemailer config: ' + err.message });
+                
+                // If email fails, we still want to log them in since verification is optional now
+                const payload = {
+                    user: {
+                        id: user.id
+                    }
+                };
+
+                const token = jwt.sign(
+                    payload,
+                    process.env.JWT_SECRET,
+                    { expiresIn: 360000 }
+                );
+
+                return res.json({ 
+                    success: true,
+                    token,
+                    msg: 'Account created! Verification email failed (Timeout), but you are now logged in. Verification is now optional.', 
+                    requireOtp: false, 
+                    email: normalizedEmail,
+                    error: err.message
+                });
             }
         } else {
              console.log('--- EMAIL NOT SENT (Missing EMAIL_USER and EMAIL_PASS in .env) ---');
@@ -169,12 +194,17 @@ router.post('/resend-otp', async (req, res) => {
         user.otpExpires = otpExpires;
         await user.save();
 
-        let transporter = nodemailer.createTransport({
-            service: 'gmail',
+        const transporter = nodemailer.createTransport({
+            host: 'smtp.gmail.com',
+            port: 465,
+            secure: true,
             auth: {
                 user: process.env.EMAIL_USER,
                 pass: process.env.EMAIL_PASS
-            }
+            },
+            connectionTimeout: 10000,
+            greetingTimeout: 10000,
+            socketTimeout: 10000
         });
 
         const mailOptions = {
@@ -190,7 +220,7 @@ router.post('/resend-otp', async (req, res) => {
                 res.json({ msg: 'A new OTP has been sent to your email' });
             } catch (err) {
                 console.error('Email resend failed:', err.message);
-                return res.status(500).json({ msg: 'Failed to send email. Check Nodemailer config: ' + err.message });
+                return res.status(500).json({ msg: 'Failed to resend email. Check Nodemailer config: ' + err.message });
             }
         } else {
              console.log('--- EMAIL NOT SENT (Missing EMAIL_USER and EMAIL_PASS in .env) ---');
@@ -244,9 +274,10 @@ router.post('/login', async (req, res) => {
             return res.status(400).json({ msg: 'Invalid Credentials' });
         }
 
-        if (!user.isVerified) {
-            return res.status(400).json({ msg: 'Please verify your email first', requireOtp: true, email: user.email });
-        }
+        // Verification check removed as per user request (skip verification for login)
+        // if (!user.isVerified) {
+        //     return res.status(400).json({ msg: 'Please verify your email first', requireOtp: true, email: user.email });
+        // }
 
 
         const isMatch = await bcrypt.compare(password, user.password);
@@ -295,12 +326,17 @@ router.post('/forgot-password', async (req, res) => {
         user.password = await bcrypt.hash(newPassword, salt);
         await user.save();
 
-        let transporter = nodemailer.createTransport({
-            service: 'gmail',
+        const transporter = nodemailer.createTransport({
+            host: 'smtp.gmail.com',
+            port: 465,
+            secure: true,
             auth: {
                 user: process.env.EMAIL_USER,
                 pass: process.env.EMAIL_PASS
-            }
+            },
+            connectionTimeout: 10000,
+            greetingTimeout: 10000,
+            socketTimeout: 10000
         });
 
         const mailOptions = {
@@ -316,7 +352,7 @@ router.post('/forgot-password', async (req, res) => {
                 res.json({ msg: 'A new password has been sent to your email' });
             } catch (err) {
                 console.error('Email send failed:', err.message);
-                return res.status(500).json({ msg: 'Failed to send email. Check Nodemailer config: ' + err.message });
+                return res.status(500).json({ msg: 'Failed to send reset email. Check Nodemailer config: ' + err.message });
             }
         } else {
              console.log('--- EMAIL NOT SENT (Missing EMAIL_USER and EMAIL_PASS in .env) ---');

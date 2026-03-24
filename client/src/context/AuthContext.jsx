@@ -82,7 +82,13 @@ export const AuthProvider = ({ children }) => {
             if (res.data.requireOtp) {
                 return { success: true, requireOtp: true, msg: res.data.msg, email: res.data.email };
             }
-            return { success: true };
+            if (res.data.token) {
+                setToken(res.data.token);
+                localStorage.setItem('token', res.data.token);
+                setIsAuthenticated(true);
+                await loadUser();
+            }
+            return { success: true, msg: res.data.msg };
         } catch (err) {
             console.error(err);
             return { success: false, msg: err.response?.data?.msg || 'Registration failed' };
