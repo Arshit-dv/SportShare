@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const nodemailer = require('nodemailer');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const auth = require('../middleware/auth');
@@ -14,26 +15,118 @@ const Event = require('../models/Event');
 router.post('/register', async (req, res) => {
     const { name, email, password, username, age, gender } = req.body;
 
+    // Email validation strictly required
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email || !emailRegex.test(email)) {
+        return res.status(400).json({ msg: 'Please enter a valid email address' });
+    }
+
     try {
         const normalizedEmail = email.toLowerCase().trim();
         let user = await User.findOne({ email: normalizedEmail });
 
         if (user) {
-            return res.status(400).json({ msg: 'User already exists' });
+            if (user.isVerified) {
+                 return res.status(400).json({ msg: 'User already exists' });
+            }
+            // User exists but not verified, proceed to update and resend OTP
         }
 
-        user = new User({
-            name,
-            email: normalizedEmail,
-            password,
-            username: username.trim(),
-            age,
-            gender
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+        const otpExpires = new Date(Date.now() + 15 * 60 * 1000); // 15 mins
+
+        if (!user) {
+            user = new User({
+                name,
+                email: normalizedEmail,
+                password,
+                username: username.trim(),
+                age,
+                gender,
+                isVerified: false,
+                otp,
+                otpExpires
+            });
+
+            const salt = await bcrypt.genSalt(10);
+            user.password = await bcrypt.hash(password, salt);
+        } else {
+            // Update unverified user details
+            user.name = name;
+            user.username = username.trim();
+            user.age = age;
+            user.gender = gender;
+            const salt = await bcrypt.genSalt(10);
+            user.password = await bcrypt.hash(password, salt);
+            user.otp = otp;
+            user.otpExpires = otpExpires;
+        }
+
+        await user.save();
+
+        let transporter = nodemailer.createTransport({
+            service: 'gmail',
+            auth: {
+                user: process.env.EMAIL_USER,
+                pass: process.env.EMAIL_PASS
+            }
         });
 
-        const salt = await bcrypt.genSalt(10);
-        user.password = await bcrypt.hash(password, salt);
+        const mailOptions = {
+            from: process.env.EMAIL_USER || 'noreply@sportshare.com',
+            to: normalizedEmail,
+            subject: 'Verify your SportShare account',
+            text: `Your OTP for account verification is: ${otp}`
+        };
 
+        if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+            try {
+                await transporter.sendMail(mailOptions);
+                res.json({ msg: 'Verification OTP sent to your email', requireOtp: true, email: normalizedEmail });
+            } catch (err) {
+                console.error('Email sending failed:', err.message);
+                // Return exact error to help user debug App Password / Auth issues
+                return res.status(500).json({ msg: 'Failed to send email. Check Nodemailer config: ' + err.message });
+            }
+        } else {
+             console.log('--- EMAIL NOT SENT (Missing EMAIL_USER and EMAIL_PASS in .env) ---');
+             console.log(`To: ${normalizedEmail}`);
+             console.log(`OTP: ${otp}`);
+             res.json({ msg: 'Verification OTP sent to console (missing credentials)', requireOtp: true, email: normalizedEmail });
+        }
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server error');
+    }
+});
+
+// @route   POST api/auth/verify-otp
+// @desc    Verify OTP and complete registration
+// @access  Public
+router.post('/verify-otp', async (req, res) => {
+    const { email, otp } = req.body;
+
+    if (!email || !otp) {
+        return res.status(400).json({ msg: 'Please provide email and OTP' });
+    }
+
+    try {
+        const user = await User.findOne({ email: email.toLowerCase().trim() });
+
+        if (!user) return res.status(400).json({ msg: 'User not found' });
+        if (user.isVerified) return res.status(400).json({ msg: 'User already verified' });
+
+        if (user.otp !== otp) {
+            return res.status(400).json({ msg: 'Invalid OTP' });
+        }
+
+        if (user.otpExpires < new Date()) {
+            return res.status(400).json({ msg: 'OTP has expired' });
+        }
+
+        user.isVerified = true;
+        user.otp = undefined;
+        user.otpExpires = undefined;
         await user.save();
 
         const payload = {
@@ -57,11 +150,72 @@ router.post('/register', async (req, res) => {
     }
 });
 
+// @route   POST api/auth/resend-otp
+// @desc    Resend OTP to unverified user
+// @access  Public
+router.post('/resend-otp', async (req, res) => {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ msg: 'Email is required' });
+
+    try {
+        const user = await User.findOne({ email: email.toLowerCase().trim() });
+        if (!user) return res.status(400).json({ msg: 'User not found' });
+        if (user.isVerified) return res.status(400).json({ msg: 'User already verified' });
+
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+        const otpExpires = new Date(Date.now() + 15 * 60 * 1000); // 15 mins
+
+        user.otp = otp;
+        user.otpExpires = otpExpires;
+        await user.save();
+
+        let transporter = nodemailer.createTransport({
+            service: 'gmail',
+            auth: {
+                user: process.env.EMAIL_USER,
+                pass: process.env.EMAIL_PASS
+            }
+        });
+
+        const mailOptions = {
+            from: process.env.EMAIL_USER || 'noreply@sportshare.com',
+            to: user.email,
+            subject: 'Verify your SportShare account',
+            text: `Your new OTP for account verification is: ${otp}`
+        };
+
+        if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+            try {
+                await transporter.sendMail(mailOptions);
+                res.json({ msg: 'A new OTP has been sent to your email' });
+            } catch (err) {
+                console.error('Email resend failed:', err.message);
+                return res.status(500).json({ msg: 'Failed to send email. Check Nodemailer config: ' + err.message });
+            }
+        } else {
+             console.log('--- EMAIL NOT SENT (Missing EMAIL_USER and EMAIL_PASS in .env) ---');
+             console.log(`To: ${user.email}`);
+             console.log(`OTP: ${otp}`);
+             res.json({ msg: 'A new OTP has been generated (check console)' });
+        }
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server error');
+    }
+});
+
 // @route   POST api/auth/login
 // @desc    Authenticate user & get token
 // @access  Public
 router.post('/login', async (req, res) => {
     const { email, password } = req.body;
+
+    // Email validation strictly required
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email || !emailRegex.test(email)) {
+        return res.status(400).json({ msg: 'Please enter a valid email address' });
+    }
+
     // Note: Frontend sends 'username' field but it matches 'email' in our simplified schema for now, 
     // or we can treat username as email. Let's stick to email for robustness or adjust.
     // For this request: "name entered" usually implies name, but login is usually email/username.
@@ -90,6 +244,10 @@ router.post('/login', async (req, res) => {
             return res.status(400).json({ msg: 'Invalid Credentials' });
         }
 
+        if (!user.isVerified) {
+            return res.status(400).json({ msg: 'Please verify your email first', requireOtp: true, email: user.email });
+        }
+
 
         const isMatch = await bcrypt.compare(password, user.password);
 
@@ -115,6 +273,60 @@ router.post('/login', async (req, res) => {
     } catch (err) {
         console.error(err.message);
         res.status(500).send('Server error');
+    }
+});
+
+// @route   POST api/auth/forgot-password
+// @desc    Generate a new password and send to email
+// @access  Public
+router.post('/forgot-password', async (req, res) => {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ msg: 'Email is required' });
+
+    try {
+        const user = await User.findOne({ email: email.toLowerCase().trim() });
+        if (!user) return res.status(400).json({ msg: 'User not found' });
+
+        // Generate a random 8-character password
+        const newPassword = Math.random().toString(36).slice(-8);
+
+        // Hash and save the new password
+        const salt = await bcrypt.genSalt(10);
+        user.password = await bcrypt.hash(newPassword, salt);
+        await user.save();
+
+        let transporter = nodemailer.createTransport({
+            service: 'gmail',
+            auth: {
+                user: process.env.EMAIL_USER,
+                pass: process.env.EMAIL_PASS
+            }
+        });
+
+        const mailOptions = {
+            from: process.env.EMAIL_USER || 'noreply@sportshare.com',
+            to: user.email,
+            subject: 'SportShare - New Password Generated',
+            text: `You requested a password reset. Your new temporary password is: ${newPassword}\nPlease log in and change your password as soon as possible.`
+        };
+
+        if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+            try {
+                await transporter.sendMail(mailOptions);
+                res.json({ msg: 'A new password has been sent to your email' });
+            } catch (err) {
+                console.error('Email send failed:', err.message);
+                return res.status(500).json({ msg: 'Failed to send email. Check Nodemailer config: ' + err.message });
+            }
+        } else {
+             console.log('--- EMAIL NOT SENT (Missing EMAIL_USER and EMAIL_PASS in .env) ---');
+             console.log(`To: ${user.email}`);
+             console.log(`New Password: ${newPassword}`);
+             res.json({ msg: 'A new password has been generated (check console)' });
+        }
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
     }
 });
 
@@ -192,6 +404,40 @@ router.put('/profile', [auth, upload.single('profilePhoto')], async (req, res) =
         ).select('-password');
 
         res.json(user);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+});
+
+// @route   PUT api/auth/change-password
+// @desc    Change user password
+// @access  Private
+router.put('/change-password', auth, async (req, res) => {
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+        return res.status(400).json({ msg: 'Please provide both current and new passwords' });
+    }
+
+    if (newPassword.length < 6) {
+        return res.status(400).json({ msg: 'New password must be at least 6 characters' });
+    }
+
+    try {
+        const user = await User.findById(req.user.id);
+        if (!user) return res.status(404).json({ msg: 'User not found' });
+
+        const isMatch = await bcrypt.compare(currentPassword, user.password);
+        if (!isMatch) {
+            return res.status(400).json({ msg: 'Incorrect current password' });
+        }
+
+        const salt = await bcrypt.genSalt(10);
+        user.password = await bcrypt.hash(newPassword, salt);
+        await user.save();
+
+        res.json({ msg: 'Password successfully updated' });
     } catch (err) {
         console.error(err.message);
         res.status(500).send('Server Error');

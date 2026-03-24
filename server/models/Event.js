@@ -37,6 +37,29 @@ const EventSchema = new mongoose.Schema({
             }
         }
     ],
+    images: [
+        {
+            url: {
+                type: String,
+                required: true
+            },
+            public_id: {
+                type: String,
+                required: true
+            },
+            uploadedBy: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: 'user'
+            },
+            description: {
+                type: String
+            },
+            uploadedAt: {
+                type: Date,
+                default: Date.now
+            }
+        }
+    ],
     createdAt: {
         type: Date,
         default: Date.now

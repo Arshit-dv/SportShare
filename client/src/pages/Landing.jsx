@@ -232,7 +232,9 @@ const Landing = () => {
                 zIndex: 1,
                 fontSize: '1.1rem'
             }}>
-                <p>&copy; 2026 SportShare. All rights reserved.</p>
+                <p>
+                    <a href="https://www.linkedin.com/in/arshit-choudhary/" target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'none', cursor: 'pointer' }}>&copy;</a> 2026 SportShare. All rights reserved.
+                </p>
             </footer>
         </div>
     );

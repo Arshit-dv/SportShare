@@ -22,6 +22,16 @@ const Profile = () => {
     const [removePhoto, setRemovePhoto] = useState(false);
     const [showFriendsModal, setShowFriendsModal] = useState(false);
 
+    const [showChangePassword, setShowChangePassword] = useState(false);
+    const [passwordData, setPasswordData] = useState({
+        currentPassword: '',
+        newPassword: '',
+        confirmNewPassword: ''
+    });
+    const { currentPassword, newPassword, confirmNewPassword } = passwordData;
+    const [passwordError, setPasswordError] = useState('');
+    const [passwordSuccess, setPasswordSuccess] = useState('');
+
     // Determines if we are viewing our own profile
     const isOwnProfile = !id || (authUser && id === authUser._id);
 
@@ -54,7 +64,7 @@ const Profile = () => {
             setFormData({
                 description: profileUser.description || '',
                 preferredSports: profileUser.preferredSports ? profileUser.preferredSports.join(', ') : '',
-                profilePhoto: profileUser.profilePhoto || 'https://ui-avatars.com/api/?name=User&background=random'
+                profilePhoto: profileUser.profilePhoto || `https://ui-avatars.com/api/?name=${encodeURIComponent(profileUser.name || 'User')}&background=random`
             });
         }
     }, [profileUser, isOwnProfile]);
@@ -95,6 +105,34 @@ const Profile = () => {
         } catch (err) {
             console.error('Profile update failed', err);
             alert(err.response?.data?.msg || 'Profile update failed. Make sure your Cloudinary credentials are set correctly in the server .env file.');
+        }
+    };
+
+    const onPasswordChange = e => setPasswordData({ ...passwordData, [e.target.name]: e.target.value });
+
+    const onPasswordSubmit = async e => {
+        e.preventDefault();
+        setPasswordError('');
+        setPasswordSuccess('');
+        
+        if (newPassword !== confirmNewPassword) {
+            setPasswordError('New passwords do not match');
+            return;
+        }
+
+        try {
+            const res = await api.put('/api/auth/change-password', {
+                currentPassword,
+                newPassword
+            });
+            setPasswordSuccess(res.data.msg);
+            setPasswordData({ currentPassword: '', newPassword: '', confirmNewPassword: '' });
+            setTimeout(() => {
+                setShowChangePassword(false);
+                setPasswordSuccess('');
+            }, 2000);
+        } catch (err) {
+            setPasswordError(err.response?.data?.msg || 'Error changing password');
         }
     };
 
@@ -215,10 +253,10 @@ const Profile = () => {
                             src={
                                 profileUser.profilePhoto && !profileUser.profilePhoto.includes('placeholder.com')
                                     ? profileUser.profilePhoto
-                                    : 'https://ui-avatars.com/api/?name=User&background=random'
+                                    : `https://ui-avatars.com/api/?name=${encodeURIComponent(profileUser.name || 'User')}&background=random`
                             }
                             alt="Profile"
-                            onError={(e) => { e.target.onerror = null; e.target.src = 'https://ui-avatars.com/api/?name=User&background=random'; }}
+                            onError={(e) => { e.target.onerror = null; e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(profileUser.name || 'User')}&background=random`; }}
                             style={{
                                 width: '100%',
                                 height: '100%',
@@ -302,6 +340,27 @@ const Profile = () => {
                             }}
                         >
                             Edit Profile
+                        </button>
+
+                        <button
+                            onClick={() => setShowChangePassword(true)}
+                            style={{
+                                width: '100%',
+                                background: 'transparent',
+                                color: 'var(--accent-blue)',
+                                border: '1px solid var(--accent-blue)',
+                                padding: '12px',
+                                borderRadius: '8px',
+                                fontWeight: 'bold',
+                                cursor: 'pointer',
+                                fontSize: '1rem',
+                                marginBottom: '10px',
+                                transition: 'all 0.3s'
+                            }}
+                            onMouseOver={(e) => { e.target.style.background = 'rgba(0, 162, 255, 0.1)'; }}
+                            onMouseOut={(e) => { e.target.style.background = 'transparent'; }}
+                        >
+                            Change Password
                         </button>
 
                         <button
@@ -416,7 +475,7 @@ const Profile = () => {
                             </button>
                         )}
                         <button
-                            onClick={() => alert('Message feature coming soon!')}
+                            onClick={() => navigate('/inbox', { state: { chatUser: profileUser } })}
                             className="btn-secondary"
                             style={{ flex: 1, padding: '12px', borderRadius: '8px', fontSize: '1rem' }}
                         >
@@ -437,7 +496,7 @@ const Profile = () => {
                                 <div className="input-group">
                                     <label>Profile Photo</label>
                                     <input type="file" name="profilePhoto" accept="image/*" onChange={onChange} style={{ color: 'white' }} />
-                                    {profilePhoto && profilePhoto !== 'https://ui-avatars.com/api/?name=User&background=random' && !removePhoto && (
+                                    {profilePhoto && !profilePhoto.includes('ui-avatars.com') && !removePhoto && (
                                         <button
                                             type="button"
                                             onClick={() => { setRemovePhoto(true); setFile(null); }}
@@ -477,6 +536,37 @@ const Profile = () => {
                 )
             }
 
+            {/* Change Password Modal (Overlay) */}
+            {
+                showChangePassword && (
+                    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
+                        <div className="card" style={{ width: '90%', maxWidth: '400px', background: '#111', border: '1px solid #333' }}>
+                            <h3 style={{ textAlign: 'center', marginBottom: '20px' }}>Change Password</h3>
+                            {passwordSuccess && <div style={{ background: 'rgba(56, 204, 119, 0.2)', color: 'var(--success)', padding: '10px', borderRadius: '5px', marginBottom: '15px', textAlign: 'center' }}>{passwordSuccess}</div>}
+                            {passwordError && <div style={{ background: 'rgba(255,0,85,0.2)', color: 'var(--danger)', padding: '10px', borderRadius: '5px', marginBottom: '15px', textAlign: 'center' }}>{passwordError}</div>}
+                            <form onSubmit={onPasswordSubmit}>
+                                <div className="input-group">
+                                    <label>Current Password</label>
+                                    <input type="password" name="currentPassword" value={currentPassword} onChange={onPasswordChange} required />
+                                </div>
+                                <div className="input-group">
+                                    <label>New Password</label>
+                                    <input type="password" name="newPassword" value={newPassword} onChange={onPasswordChange} required minLength="6" />
+                                </div>
+                                <div className="input-group">
+                                    <label>Confirm New Password</label>
+                                    <input type="password" name="confirmNewPassword" value={confirmNewPassword} onChange={onPasswordChange} required minLength="6" />
+                                </div>
+                                <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
+                                    <button type="button" onClick={() => { setShowChangePassword(false); setPasswordError(''); setPasswordSuccess(''); setPasswordData({currentPassword: '', newPassword: '', confirmNewPassword: ''}); }} style={{ flex: 1, padding: '10px', background: '#333', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer' }}>Cancel</button>
+                                    <button type="submit" className="btn-primary" style={{ flex: 1 }}>Update</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                )
+            }
+
             {/* Friends Modal */}
             {showFriendsModal && (
                 <div
@@ -507,10 +597,10 @@ const Profile = () => {
                                     onMouseOut={(e) => friend._id && (e.currentTarget.style.background = '#222')}
                                 >
                                     <img
-                                        src={friend.profilePhoto || 'https://ui-avatars.com/api/?name=User&background=random'}
+                                        src={friend.profilePhoto || `https://ui-avatars.com/api/?name=${encodeURIComponent(friend.name || 'User')}&background=random`}
                                         alt={friend.username}
                                         style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }}
-                                        onError={(e) => { e.target.onerror = null; e.target.src = 'https://ui-avatars.com/api/?name=User&background=random'; }}
+                                        onError={(e) => { e.target.onerror = null; e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(friend.name || 'User')}&background=random`; }}
                                     />
                                     <div>
                                         <div style={{ fontWeight: 'bold' }}>{friend.name || 'Unknown User'}</div>

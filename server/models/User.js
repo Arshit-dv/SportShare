@@ -44,9 +44,27 @@ const UserSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'user'
     }],
+    blockedUsers: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'user'
+    }],
+    mutedUsers: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'user'
+    }],
     date: {
         type: Date,
         default: Date.now
+    },
+    isVerified: {
+        type: Boolean,
+        default: false
+    },
+    otp: {
+        type: String
+    },
+    otpExpires: {
+        type: Date
     }
 });
 

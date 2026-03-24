@@ -147,6 +147,40 @@ export const EventProvider = ({ children }) => {
         }
     };
 
+    // Upload Event Image
+    const uploadEventImage = async (id, formData) => {
+        try {
+            await api.post(`/api/events/${id}/images`, formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data'
+                }
+            });
+            getEvents();
+            return { success: true };
+        } catch (err) {
+            dispatch({
+                type: 'EVENT_ERROR',
+                payload: err.response?.data?.msg || 'Error uploading image'
+            });
+            return { success: false, msg: err.response?.data?.msg || 'Error uploading image' };
+        }
+    };
+
+    // Delete Event Image
+    const deleteEventImage = async (eventId, imageId) => {
+        try {
+            await api.delete(`/api/events/${eventId}/images/${imageId}`);
+            getEvents();
+            return { success: true };
+        } catch (err) {
+            dispatch({
+                type: 'EVENT_ERROR',
+                payload: err.response?.data?.msg || 'Error deleting image'
+            });
+            return { success: false, msg: err.response?.data?.msg || 'Error deleting image' };
+        }
+    };
+
     return (
         <EventContext.Provider
             value={{
@@ -157,7 +191,9 @@ export const EventProvider = ({ children }) => {
                 addEvent,
                 updateEvent,
                 deleteEvent,
-                joinEvent
+                joinEvent,
+                uploadEventImage,
+                deleteEventImage
             }}
         >
             {children}

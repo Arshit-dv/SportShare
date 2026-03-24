@@ -4,9 +4,10 @@ import AuthContext from '../context/AuthContext';
 
 const Sidebar = ({ isOpen, toggle }) => {
     const location = useLocation();
-    const { user } = useContext(AuthContext);
+    const { user, unreadCount } = useContext(AuthContext);
 
     const pendingRequestsCount = user?.friendRequests?.length || 0;
+    const inboxBadgeCount = pendingRequestsCount + (unreadCount || 0);
 
     const [ballIndex, setBallIndex] = useState(0);
     const sports = ['🏀', '⚽', '🏐', '⚾']; // Removed 8-ball
@@ -18,7 +19,7 @@ const Sidebar = ({ isOpen, toggle }) => {
     const menuItems = [
         { name: 'Events', path: '/dashboard', icon: '📅' },
         { name: 'Profile', path: '/profile', icon: '👤' },
-        { name: 'Inbox', path: '/inbox', icon: '📥', hasBadge: pendingRequestsCount > 0 },
+        { name: 'Inbox', path: '/inbox', icon: '📥', hasBadge: inboxBadgeCount > 0, badgeCount: inboxBadgeCount },
         { name: 'Event History', path: '/history', icon: '📜' },
         { name: 'My Stats', path: '/stats', icon: '📈', hasBadge: false },
     ];
@@ -110,7 +111,7 @@ const Sidebar = ({ isOpen, toggle }) => {
                                                 fontSize: '0.7rem',
                                                 fontWeight: 'bold'
                                             }}>
-                                                {pendingRequestsCount}
+                                                {item.badgeCount}
                                             </span>
                                         )}
                                     </span>

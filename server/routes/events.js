@@ -1,6 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const auth = require('../middleware/auth');
+const uploadEvent = require('../middleware/uploadEvent');
+const cloudinary = require('cloudinary').v2;
 const Event = require('../models/Event');
 const User = require('../models/User');
 
@@ -38,8 +40,11 @@ router.post('/', auth, async (req, res) => {
 // @access  Private
 router.get('/', auth, async (req, res) => {
     try {
-        // Sort by date (nearest first)
-        const events = await Event.find().sort({ date: 1 }).populate('user', 'name');
+        const events = await Event.find()
+            .sort({ date: 1 })
+            .populate('user', 'name')
+            .populate('images.uploadedBy', 'name')
+            .populate('participants.user', 'name');
         res.json(events);
     } catch (err) {
         console.error(err.message);
@@ -110,6 +115,8 @@ router.put('/:id', auth, async (req, res) => {
 
         // Populate user for consistency
         await event.populate('user', 'name');
+        await event.populate('images.uploadedBy', 'name');
+        await event.populate('participants.user', 'name');
 
         res.json(event);
     } catch (err) {
@@ -151,6 +158,83 @@ router.put('/join/:id', auth, async (req, res) => {
 
         await event.save();
         res.json(event.participants);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+});
+
+// @route   POST api/events/:id/images
+// @desc    Add an image to an event gallery
+// @access  Private
+router.post('/:id/images', auth, uploadEvent.single('image'), async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ msg: 'No image provided' });
+        }
+
+        const event = await Event.findById(req.params.id);
+
+        if (!event) {
+            return res.status(404).json({ msg: 'Event not found' });
+        }
+
+        // Add the new image to the event's images array
+        const newImage = {
+            url: req.file.path,
+            public_id: req.file.filename,
+            uploadedBy: req.user.id,
+            description: req.body.description || ''
+        };
+
+        event.images.unshift(newImage);
+
+        await event.save();
+        
+        // Populate the user who uploaded the image so we have their name for UI
+        await event.populate('images.uploadedBy', 'name profilePicture');
+
+        res.json(event.images);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+});
+
+// @route   DELETE api/events/:id/images/:imageId
+// @desc    Delete an image from an event gallery
+// @access  Private
+router.delete('/:id/images/:imageId', auth, async (req, res) => {
+    try {
+        const event = await Event.findById(req.params.id);
+
+        if (!event) {
+            return res.status(404).json({ msg: 'Event not found' });
+        }
+
+        // Find the image
+        const image = event.images.find(img => img._id.toString() === req.params.imageId);
+
+        if (!image) {
+            return res.status(404).json({ msg: 'Image not found' });
+        }
+
+        // Check user authorization (either uploader or event host)
+        if (image.uploadedBy.toString() !== req.user.id && event.user.toString() !== req.user.id) {
+            return res.status(401).json({ msg: 'User not authorized to delete this image' });
+        }
+
+        // Remove from Cloudinary
+        if (image.public_id) {
+            await cloudinary.uploader.destroy(image.public_id);
+        }
+
+        // Remove from array
+        event.images = event.images.filter(img => img._id.toString() !== req.params.imageId);
+
+        await event.save();
+        
+        res.json(event.images);
     } catch (err) {
         console.error(err.message);
         res.status(500).send('Server Error');
