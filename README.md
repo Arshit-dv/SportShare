@@ -1,6 +1,24 @@
 # SportShare | Full-Stack Community Sports Platform
 
-![Logo](https://ui-avatars.com/api/?name=Sport+Share&background=7aa2f7&color=000&size=128)
+![favicon](https://github.com/user-attachments/assets/4c3d653f-5287-44da-b0ad-d3a9dce7fb7d)<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Solid Background for visibility -->
+  <circle cx="50" cy="50" r="48" fill="white" />
+  
+  <!-- Outer Ring (Black) -->
+  <circle cx="50" cy="50" r="40" fill="none" stroke="black" stroke-width="8" />
+  
+  <!-- Middle Ring (Red) -->
+  <circle cx="50" cy="50" r="25" fill="none" stroke="#ff0000" stroke-width="8" />
+  
+  <!-- Center Bullseye (Black) -->
+  <circle cx="50" cy="50" r="8" fill="black" />
+  
+  <!-- Crosshairs (Black) for extra definition -->
+  <line x1="50" y1="2" x2="50" y2="20" stroke="black" stroke-width="4" stroke-linecap="round" />
+  <line x1="50" y1="80" x2="50" y2="98" stroke="black" stroke-width="4" stroke-linecap="round" />
+  <line x1="2" y1="50" x2="20" y2="50" stroke="black" stroke-width="4" stroke-linecap="round" />
+  <line x1="80" y1="50" x2="98" y2="50" stroke="black" stroke-width="4" stroke-linecap="round" />
+</svg>
 
 **SportShare** is a high-performance community coordination platform built for local sports enthusiasts. It facilitates seamless event creation, real-time participation tracking, and instantaneous user communication, all within a sleek, modern UI.
 
@@ -11,6 +29,10 @@
 -   **📅 Event Management**: Create, join, and discover local sports events with a dynamic, real-time participation flow.
 -   **📸 Memory Galleries**: Cloudinary-integrated media galleries for event hosts and participants to share and manage memories.
 -   **📱 Modern UI**: Fully responsive, dark-themed design with sleek micro-animations and intuitive navigation.
+
+## Animated Preview
+
+
 
 ## 🛠️ Tech Stack
 
