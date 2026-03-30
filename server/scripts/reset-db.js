@@ -4,9 +4,7 @@ const User = require('../models/User');
 const Event = require('../models/Event');
 const Message = require('../models/Message');
 
-const path = require('path');
-
-dotenv.config({ path: path.join(__dirname, '../.env') });
+dotenv.config();
 
 /**
  * RESET DATABASE SCRIPT
@@ -20,7 +18,7 @@ const resetDB = async () => {
 
         console.log('🗑️ Clearing Users...');
         await User.deleteMany({});
-        
+
         console.log('🗑️ Clearing Events...');
         await Event.deleteMany({});
 

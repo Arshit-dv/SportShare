@@ -1,50 +1,54 @@
-# SportShare
+# SportShare | Full-Stack Community Sports Platform
 
-A MERN stack sports event management platform.
+![Logo](https://ui-avatars.com/api/?name=Sport+Share&background=7aa2f7&color=000&size=128)
 
-## Prerequisites
+**SportShare** is a high-performance community coordination platform built for local sports enthusiasts. It facilitates seamless event creation, real-time participation tracking, and instantaneous user communication, all within a sleek, modern UI.
 
-- Node.js
-- MongoDB (Must be running locally on port 27017)
+## 🚀 Key Features
 
-## Setup
+-   **⚡ Real-Time Messaging**: Instant communication and unread message tracking powered by **Socket.io**.
+-   **🛡️ Secure Authentication**: A robust, dual-layered auth architecture using **Firebase Authentication** synchronized with **MongoDB** for persistent user profiling.
+-   **📅 Event Management**: Create, join, and discover local sports events with a dynamic, real-time participation flow.
+-   **📸 Memory Galleries**: Cloudinary-integrated media galleries for event hosts and participants to share and manage memories.
+-   **📱 Modern UI**: Fully responsive, dark-themed design with sleek micro-animations and intuitive navigation.
 
-1.  **Clone the repository** (if applicable)
-2.  **Install Dependencies**:
+## 🛠️ Tech Stack
 
+-   **Frontend**: React.js, Vite, Axios, React-Router-Dom
+-   **Backend**: Node.js, Express.js
+-   **Database**: MongoDB (Mongoose), Firebase Admin SDK
+-   **Real-Time**: Socket.io
+-   **Storage**: Cloudinary (Image management)
+-   **Authentication**: Firebase SDK + Custom ID Sync middleware
+
+## 🛡️ Technical Architecture: The "ID Sync"
+
+One of the project's most robust features is its **Firebase-to-MongoDB synchronization**. When a user logs in via Firebase:
+1.  Firebase handles the credential verification.
+2.  Our backend middleware identifies the user by their unique Firebase UID.
+3.  The system performs an **Atomic Sync** to ensure a corresponding user record exists in MongoDB, linking both datasets for a seamless profile experience.
+
+## ⚙️ Setup & Installation
+
+1.  **Clone & Install**:
     ```bash
-    # Server
-    cd server
+    git clone [your-repo-link]
+    cd SportShare
     npm install
-
-    # Client
-    cd ../client
-    npm install
+    cd client && npm install
+    cd ../server && npm install
     ```
 
-## Running the App
+2.  **Environment Variables**:
+    -   Create `.env` files in both `client/` and `server/` directories.
+    -   **Client**: `VITE_FIREBASE_...` keys and `VITE_API_URL`.
+    -   **Server**: `MONGO_URI`, `FIREBASE_SERVICE_ACCOUNT_BASE64`, and `CLOUDINARY_...` credentials.
 
-You need to run both the backend and frontend servers.
-
-1.  **Start Backend**:
+3.  **Run Development**:
     ```bash
-    cd server
-    npm run dev
+    # From the root 
+    npm start # Or run both dev servers individually
     ```
-    Runs on `http://localhost:5000`
 
-2.  **Start Frontend**:
-    ```bash
-    cd client
-    npm run dev
-    ```
-    Runs on `http://localhost:5173`
-
-## Environment Variables
-
-**Server (.env)**:
-```
-PORT=5000
-MONGO_URI=your_mongodb_atlas_uri_here
-JWT_SECRET=your_jwt_secret_key_here
-```
+## 📜 License
+This project is for educational and community use. 🕊️
