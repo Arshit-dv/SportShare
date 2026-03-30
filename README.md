@@ -1,5 +1,5 @@
 # SportShare | Full-Stack Community Sports Platform
-
+<div width=85%>
 ![favicon](https://github.com/user-attachments/assets/4c3d653f-5287-44da-b0ad-d3a9dce7fb7d)<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
   <!-- Solid Background for visibility -->
   <circle cx="50" cy="50" r="48" fill="white" />
@@ -19,7 +19,7 @@
   <line x1="2" y1="50" x2="20" y2="50" stroke="black" stroke-width="4" stroke-linecap="round" />
   <line x1="80" y1="50" x2="98" y2="50" stroke="black" stroke-width="4" stroke-linecap="round" />
 </svg>
-
+</div>
 **SportShare** is a high-performance community coordination platform built for local sports enthusiasts. It facilitates seamless event creation, real-time participation tracking, and instantaneous user communication, all within a sleek, modern UI.
 
 ## 🚀 Key Features
