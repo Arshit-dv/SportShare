@@ -1,8 +1,10 @@
 # SportShare | Full-Stack Community Sports Platform
 
-![Logo](https://ui-avatars.com/api/?name=Sport+Share&background=7aa2f7&color=000&size=128)
 
 **SportShare** is a high-performance community coordination platform built for local sports enthusiasts. It facilitates seamless event creation, real-time participation tracking, and instantaneous user communication, all within a sleek, modern UI.
+
+## 🌐 Live
+👉 [sport-share.vercel.app](https://sport-share.vercel.app)
 
 ## 🚀 Key Features
 
@@ -11,6 +13,14 @@
 -   **📅 Event Management**: Create, join, and discover local sports events with a dynamic, real-time participation flow.
 -   **📸 Memory Galleries**: Cloudinary-integrated media galleries for event hosts and participants to share and manage memories.
 -   **📱 Modern UI**: Fully responsive, dark-themed design with sleek micro-animations and intuitive navigation.
+
+## Animated Preview
+
+
+
+https://github.com/user-attachments/assets/4d638239-d934-4ad5-9071-50cb5d8ae212
+
+
 
 ## 🛠️ Tech Stack
 
